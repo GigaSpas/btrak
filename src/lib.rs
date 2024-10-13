@@ -1,3 +1,5 @@
+use chrono::{Datelike, Local, Month, NaiveDate};
+
 ////////////////
 /////TESTS//////
 ////////////////
@@ -140,7 +142,7 @@ fn month_display() {
     ];
     let days = vec![
     BudgetDay::new(1, entries_1),
-    BudgetDay::new(1, entries_2),
+    BudgetDay::new(2, entries_2),
     BudgetDay::new(1, Vec::new())
     ];
     
@@ -160,6 +162,7 @@ fn month_display() {
 //////CODE//////
 ////////////////
 #[derive(Debug)]
+#[derive(Clone)]
 struct Entry {
     name: String,
     desc: String,
@@ -196,7 +199,7 @@ impl Entry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct BudgetDay {
     day_of_month: u8,
     entries: Vec<Entry>,
@@ -366,15 +369,33 @@ impl BudgetMonth {
     }
 
     fn display(&self, with_income: &bool, with_entries: &bool, tags: &Vec<String>) -> String {
-        let mut days = String::new();
-        let mut total_days = 0;
+
+        let mut days_string = String::new();
 
         if *with_entries {
-            for day in &self.days {
-                days += &day.display(with_income, &false, tags);
+
+            let mut days_vector: Vec<BudgetDay> = vec![];
+
+            'main: for day_num in 1..=get_days_from_month(Local::now().year(), self.month_of_year as u32) {
+                for day in &self.days {
+                    if day.day_of_month as i64 == day_num{
+                        days_vector.push(day.clone());
+                        continue 'main;
+                    }
+                }
+                days_vector.push(BudgetDay::new(day_num as u8, vec![]));
+
             }
+            for day in days_vector{
+                days_string += &day.display(with_income, &false, tags);
+            }
+            days_string.push_str("
+\n###################"
+            );
         }
+
         let average_output = self.average(with_income, tags);
+
         format! {"
 ###################
 #Month of Year: {}#
@@ -391,10 +412,28 @@ Total money: {}
 Average money: {}
             ",
             self.month_of_year,
-            days,
+            days_string,
             average_output.1,
             self.total(with_income, tags),
             self.average(with_income, tags).0
         }
     }
 }
+
+pub fn get_days_from_month(year: i32, month: u32) -> i64{
+    NaiveDate::from_ymd_opt(
+        match month {
+            12 => year + 1,
+            _ => year,
+        },
+        match month {
+            12 => 1,
+            _ => month + 1,
+        },
+        1,
+    )
+    .expect("")
+    .signed_duration_since(NaiveDate::from_ymd_opt(year, month, 1).expect(""))
+    .num_days()
+}
+
