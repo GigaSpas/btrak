@@ -1,4 +1,12 @@
-use chrono::{Datelike, Local, Month, NaiveDate};
+use chrono::{Datelike, Local, NaiveDate};
+use std::io::{Result, Write};
+use  std::path::PathBuf;
+use std::fs::{self, *};
+use serde::{Deserialize, Serialize};
+
+fn get_default_path() -> PathBuf {
+    home::home_dir().unwrap().join(PathBuf::from("Documents/Budget_Manager/"))
+}
 
 ////////////////
 /////TESTS//////
@@ -156,14 +164,48 @@ fn month_display() {
         "{}",
         month.display(&true, &true, &vec!["test".to_string(), "test2".to_string()])
     );
+
+
 }
 
+    #[test]
+    fn file_creation() {
+    let entries_1 = vec![
+        Entry::new("1".to_string(), "desc".to_string(), vec![], -1.0),
+        Entry::new(
+            "2".to_string(),
+            "desc".to_string(),
+            vec!["".to_string()],
+            -2.0,
+        ),
+    ];
+    let entries_2 = vec![
+        Entry::new("3".to_string(), "desc".to_string(), vec![], 3.0),
+        Entry::new(
+            "4".to_string(),
+            "desc".to_string(),
+            vec!["test".to_string(), "test2".to_string()],
+            4.0,
+        ),
+    ];
+    let days = vec![
+    BudgetDay::new(1, entries_1),
+    BudgetDay::new(2, entries_2),
+    BudgetDay::new(1, Vec::new())
+    ];
+    
+    let month = BudgetMonth::new(1, days);
+
+        let curr_date = Local::now().date_naive();
+        check_files(&curr_date);
+        write_month_file(&curr_date, &month);
+        
+    }
 ////////////////
 //////CODE//////
 ////////////////
-#[derive(Debug)]
-#[derive(Clone)]
-struct Entry {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Entry {
     name: String,
     desc: String,
     tags: Vec<String>,
@@ -172,7 +214,7 @@ struct Entry {
 
 impl Entry {
     // add code here
-    fn new(name: String, desc: String, tags: Vec<String>, money: f32) -> Entry {
+    pub fn new(name: String, desc: String, tags: Vec<String>, money: f32) -> Entry {
         Entry {
             name,
             desc,
@@ -180,7 +222,7 @@ impl Entry {
             money,
         }
     }
-    fn display(&self) -> String {
+    pub fn display(&self) -> String {
         let mut tags = String::new();
         for tag in &self.tags {
             tags += &(tag.to_owned() + ", ");
@@ -199,26 +241,26 @@ impl Entry {
     }
 }
 
-#[derive(Clone, Debug)]
-struct BudgetDay {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BudgetDay {
     day_of_month: u8,
     entries: Vec<Entry>,
 }
 
 impl BudgetDay {
-    fn new(day_of_month: u8, entries: Vec<Entry>) -> BudgetDay {
+    pub fn new(day_of_month: u8, entries: Vec<Entry>) -> BudgetDay {
         BudgetDay {
             day_of_month,
             entries,
         }
     }
 
-    fn add_entrie(mut self, entrie: Entry) -> BudgetDay {
+    pub fn add_entrie(mut self, entrie: Entry) -> BudgetDay {
         self.entries.push(entrie);
         self
     }
 
-    fn total(&self, with_income: &bool, tags: &Vec<String>) -> f32 {
+    pub fn total(&self, with_income: &bool, tags: &Vec<String>) -> f32 {
         if self.entries.is_empty() {
             return 0.0;
         }
@@ -240,7 +282,7 @@ impl BudgetDay {
         total
     }
 
-    fn average(&self, with_income: &bool, tags: &Vec<String>) -> (f32, u32) {
+    pub fn average(&self, with_income: &bool, tags: &Vec<String>) -> (f32, u32) {
         if self.entries.is_empty() {
             return (0.0, 0);
         }
@@ -269,7 +311,7 @@ impl BudgetDay {
         (average, total_entries)
     }
 
-    fn display(&self, with_income: &bool, with_entries: &bool, tags: &Vec<String>) -> String {
+    pub fn display(&self, with_income: &bool, with_entries: &bool, tags: &Vec<String>) -> String {
         let mut entries = String::new();
         let mut total_entries = 0;
 
@@ -298,9 +340,9 @@ Daily Stats:
 
 Total entries: {}
 
-Total money: {}
+Total: {}
 
-Average money: {}
+Average: {}
             ",
             self.day_of_month,
             entries,
@@ -311,26 +353,35 @@ Average money: {}
     }
 }
 
-#[derive(Debug)]
-struct BudgetMonth {
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BudgetMonth {
     month_of_year: u8,
     days: Vec<BudgetDay>,
 }
 
 impl BudgetMonth {
-    fn new(month_of_year: u8, days: Vec<BudgetDay>) -> BudgetMonth {
+    pub fn new(month_of_year: u8, days: Vec<BudgetDay>) -> BudgetMonth {
         BudgetMonth {
             month_of_year,
             days,
         }
     }
 
-    fn add_day(mut self, day: BudgetDay) -> BudgetMonth {
+    pub fn add_day(mut self, day: BudgetDay) -> BudgetMonth {
         self.days.push(day);
         self
     }
 
-    fn total(&self, with_income: &bool, tags: &Vec<String>) -> f32 {
+    pub fn get_day(&self, num_day: u8) -> BudgetDay{
+        for day in &self.days {
+            if day.day_of_month == num_day {
+                return day.clone();
+            }
+        }
+        BudgetDay::new(num_day, vec![])
+    }
+
+    pub fn total(&self, with_income: &bool, tags: &Vec<String>) -> f32 {
         if self.days.is_empty() {
             return 0.0;
         }
@@ -344,7 +395,7 @@ impl BudgetMonth {
         total
     }
 
-    fn average(&self, with_income: &bool, tags: &Vec<String>) -> (f32, u32) {
+    pub fn average(&self, with_income: &bool, tags: &Vec<String>) -> (f32, u32) {
         if self.days.is_empty() {
             return (0.0, 0);
         }
@@ -368,7 +419,7 @@ impl BudgetMonth {
         (average, total_entries)
     }
 
-    fn display(&self, with_income: &bool, with_entries: &bool, tags: &Vec<String>) -> String {
+    pub fn display(&self, year: u8, with_income: &bool, with_entries: &bool, tags: &Vec<String>) -> String {
 
         let mut days_string = String::new();
 
@@ -376,7 +427,7 @@ impl BudgetMonth {
 
             let mut days_vector: Vec<BudgetDay> = vec![];
 
-            'main: for day_num in 1..=get_days_from_month(Local::now().year(), self.month_of_year as u32) {
+            'main: for day_num in 1..=get_days_from_month(year as i32, self.month_of_year as u32) {
                 for day in &self.days {
                     if day.day_of_month as i64 == day_num{
                         days_vector.push(day.clone());
@@ -389,12 +440,20 @@ impl BudgetMonth {
             for day in days_vector{
                 days_string += &day.display(with_income, &false, tags);
             }
+
             days_string.push_str("
 \n###################"
             );
         }
 
-        let average_output = self.average(with_income, tags);
+        let mut total = 0.0;
+        for day in &self.days {
+            total += day.total(with_income, tags);
+        }
+
+        let average_day = total / get_days_from_month(year as i32, self.month_of_year as u32) as f32;
+
+        let average_entrie = self.average(with_income, tags);
 
         format! {"
 ###################
@@ -407,20 +466,23 @@ Monthly Stats:
 
 Total entries: {}
 
-Total money: {}
+Total: {}
 
-Average money: {}
+Average per entrie: {}
+
+Average per day: {}
             ",
             self.month_of_year,
             days_string,
-            average_output.1,
+            average_entrie.1,
             self.total(with_income, tags),
-            self.average(with_income, tags).0
+            average_entrie.0,
+            average_day
         }
     }
 }
 
-pub fn get_days_from_month(year: i32, month: u32) -> i64{
+ pub fn get_days_from_month(year: i32, month: u32) -> i64{
     NaiveDate::from_ymd_opt(
         match month {
             12 => year + 1,
@@ -437,3 +499,44 @@ pub fn get_days_from_month(year: i32, month: u32) -> i64{
     .num_days()
 }
 
+pub fn check_files(date: &NaiveDate){
+
+    let path = get_default_path();
+    let year_path = path.join(date.year().to_string());
+    let month_path = path.join(date.year().to_string() + "/" + &(date.month0() + 1).to_string());
+
+    if !path.exists(){
+        create_dir(path).expect("Cannot create main folder");
+    }
+
+    if !year_path.exists() {
+        create_dir(year_path).expect("Cannot create year folder");
+    }
+
+    if !month_path.exists() {
+        File::create(month_path).expect("Cannot create month file");
+    }
+
+}
+
+pub fn write_month_file (date: &NaiveDate, b_month: &BudgetMonth) {
+    check_files(date);
+    let file_path= get_default_path().join(date.year().to_string() + "/" + &(date.month0() + 1).to_string());
+        let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(file_path)
+        .unwrap();
+    let contents = serde_json::to_string(b_month).unwrap();
+    let _ = file.write_all(contents.as_bytes());
+
+}
+
+pub fn read_month_file (date: NaiveDate) -> Result<BudgetMonth>{
+
+    let file_path= get_default_path().join(date.year().to_string() + "/" + &(date.month0() + 1).to_string());
+
+    let result: BudgetMonth = serde_json::from_str(&fs::read_to_string(file_path)?)?;
+    Ok(result)
+}
