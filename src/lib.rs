@@ -372,6 +372,26 @@ impl BudgetMonth {
         self
     }
 
+    pub fn replace_entry(mut self, day: BudgetDay) -> BudgetMonth {
+
+        if !self.days.is_empty() {
+
+        let mut i = 0;
+
+        for day_to_replace in &self.days{
+            if day_to_replace.day_of_month == day.day_of_month{
+               break;
+            }
+            i+= 1;
+        };
+
+        self.days.remove(i);
+
+        }
+        self.days.push(day);
+        self
+    }
+
     pub fn get_day(&self, num_day: u8) -> BudgetDay{
         for day in &self.days {
             if day.day_of_month == num_day {
