@@ -156,13 +156,13 @@ fn month_display() {
     
     let month = BudgetMonth::new(1, days);
 
-    print!("{}", month.display(&true, &true, &Vec::new()));
-    print!("{}", month.display(&false, &true, &Vec::new()));
-    print!("{}", month.display(&true, &true, &vec!["test".to_string()]));
-    print!("{}", month.display(&false, &true, &vec!["test".to_string()]));
+    print!("{}", month.display(2025, &true, &true, &Vec::new()));
+    print!("{}", month.display(2025,&false, &true, &Vec::new()));
+    print!("{}", month.display(2025,&true, &true, &vec!["test".to_string()]));
+    print!("{}", month.display(2025,&false, &true, &vec!["test".to_string()]));
     print!(
         "{}",
-        month.display(&true, &true, &vec!["test".to_string(), "test2".to_string()])
+        month.display(2025, &true, &true, &vec!["test".to_string(), "test2".to_string()])
     );
 
 
@@ -213,7 +213,6 @@ pub struct Entry {
 }
 
 impl Entry {
-    // add code here
     pub fn new(name: String, desc: String, tags: Vec<String>, money: f32) -> Entry {
         Entry {
             name,
@@ -229,11 +228,11 @@ impl Entry {
         }
         format!(
             "
-            Name: {}
-            Tags: {}
-            Description: {}
+Name: {}
+Tags: {}
+Description: {}
 
-            ${}
+${}
 
             ",
             self.name, tags, self.desc, self.money,
@@ -253,6 +252,15 @@ impl BudgetDay {
             day_of_month,
             entries,
         }
+    }
+
+    pub fn get_entries(&self) -> &Vec<Entry>{
+        &self.entries
+    }
+
+    pub fn remove_entrie(mut self, i: usize) -> BudgetDay{
+        self.entries.remove(i);
+        self
     }
 
     pub fn add_entrie(mut self, entrie: Entry) -> BudgetDay {
@@ -319,8 +327,8 @@ impl BudgetDay {
             if !with_income && entry.money > 0.0 {
                 continue;
             }
-            for tag in tags {
-                if !entry.tags.contains(tag) {
+            for tag_to_check in tags {
+                if !entry.tags.contains(tag_to_check) {
                     continue 'main;
                 }
             }
@@ -372,7 +380,7 @@ impl BudgetMonth {
         self
     }
 
-    pub fn replace_entry(mut self, day: BudgetDay) -> BudgetMonth {
+    pub fn replace_day(mut self, day: BudgetDay) -> BudgetMonth {
 
         if !self.days.is_empty() {
 
@@ -380,13 +388,11 @@ impl BudgetMonth {
 
         for day_to_replace in &self.days{
             if day_to_replace.day_of_month == day.day_of_month{
+               self.days.remove(i);
                break;
             }
             i+= 1;
-        };
-
-        self.days.remove(i);
-
+            };
         }
         self.days.push(day);
         self
@@ -439,7 +445,7 @@ impl BudgetMonth {
         (average, total_entries)
     }
 
-    pub fn display(&self, year: u8, with_income: &bool, with_entries: &bool, tags: &Vec<String>) -> String {
+    pub fn display(&self, year: u32, with_income: &bool, with_entries: &bool, tags: &Vec<String>) -> String {
 
         let mut days_string = String::new();
 
@@ -545,9 +551,11 @@ pub fn write_month_file (date: &NaiveDate, b_month: &BudgetMonth) {
         let mut file = OpenOptions::new()
         .read(true)
         .write(true)
+        .truncate(true)
         .create(true)
         .open(file_path)
         .unwrap();
+    
     let contents = serde_json::to_string(b_month).unwrap();
     let _ = file.write_all(contents.as_bytes());
 
