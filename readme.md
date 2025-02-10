@@ -3,16 +3,12 @@
 
 A simple cli income/expense tracking program
 
-
-
 ## Features
 
-- adding, removing or viewing entries on any desired date
-- viewing entries by day or month
-- filtering entries by user created tags
-- filtering out only expenses or income
-
-
+- Adding, removing or viewing entries on any desired date
+- Viewing entries by day or month
+- Filtering entries by user created tags
+- Filtering out only expenses or income
 
 ## Installation
 
@@ -23,4 +19,4 @@ On linux you can place it in the bin directory for easy access
 
 ## Compiling  
 
-You can the project from source code using cargo
+You can compile the project from source using cargo
