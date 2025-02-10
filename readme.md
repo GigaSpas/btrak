@@ -16,6 +16,8 @@ Just download and the executable from the releases page
 
 On linux you can place it in the bin directory for easy access
 
+All data is stored in Documents/btrak
+
 
 ## Compiling  
 
