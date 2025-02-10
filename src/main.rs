@@ -1,6 +1,6 @@
 use std::process::exit;
 
-use budget_manager::*;
+use btrak::*;
 use chrono::{self, Datelike};
 use std::io;
 

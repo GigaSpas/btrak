@@ -7,7 +7,7 @@ use std::path::PathBuf;
 fn get_default_path() -> PathBuf {
     home::home_dir()
         .unwrap()
-        .join(PathBuf::from("Documents/Budget_Manager/"))
+        .join(PathBuf::from("Documents/btrak/"))
 }
 
 ////////////////
